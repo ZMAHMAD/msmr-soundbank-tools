@@ -7,6 +7,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import scrolledtext
 
+# This file lives in the project root, next to the Banks / WEMs / WAVs folders.
 BASE = Path(__file__).resolve().parent
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
@@ -17,13 +18,14 @@ STEPS = [
     ("3. Convert WEMs", "wemconverter.bat", lambda p: ["cmd", "/c", str(p)]),
 ]
 
-# (label, folder, extension) shown in the counts panel. Folder names for
-# soundbanks are a guess, so change them to match your layout.
+# Folder holding soundbank_extractor.py and the .bat files.
+SCRIPTS_DIR = BASE / "src"
+
 COUNT_FOLDERS = [
-    ("Soundbanks", BASE.parent / "Soundbanks", ".soundbank"),
-    ("Banks", BASE.parent / "Banks", ".bnk"),
-    ("WEMs", BASE.parent / "WEMs", ".wem"),
-    ("WAVs", BASE.parent / "WAVs", ".wav"),
+    ("Soundbanks", BASE / "Soundbanks", ".soundbank"),
+    ("Banks", BASE / "Banks", ".bnk"),
+    ("WEMs", BASE / "WEMs", ".wem"),
+    ("WAVs", BASE / "WAVs", ".wav"),
 ]
 
 
@@ -137,19 +139,20 @@ class App(tk.Tk):
         put = self.msgs.put
         for n, idx in enumerate(indices):
             label, filename, build = STEPS[idx]
-            script = BASE / filename
+            script = SCRIPTS_DIR / filename
             put(("status", f"Running: {label}"))
             put(("log", f"\n===== {label} =====\n"))
 
             if not script.is_file():
-                put(("log", f"[ERROR] Could not find {script}\n"))
+                put(("log", f"[ERROR] Could not find {script}\n"
+                            "        Check that the scripts are in the src folder next to this file.\n"))
                 put(("status", f"Failed: {label} (script not found)"))
                 break
 
             env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")
             try:
                 self.proc = subprocess.Popen(
-                    build(script), cwd=BASE, env=env,
+                    build(script), cwd=SCRIPTS_DIR, env=env,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     text=True, encoding="utf-8", errors="replace", bufsize=1,
                     creationflags=NO_WINDOW,
